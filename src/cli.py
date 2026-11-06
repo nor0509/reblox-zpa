@@ -91,7 +91,7 @@ def export() -> None:
     stats = exporter.export_to_parquet()
     console.print(
         f"[bold green]Wygenerowano pliki w {settings.processed_data_dir}:[/bold green] "
-        f"games.parquet ({stats['games']} wierszy) | tags.parquet ({stats['tags']} wierszy)"
+        f"games.parquet ({stats['games']} wierszy)"
     )
 
 
