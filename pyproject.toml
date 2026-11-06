@@ -30,6 +30,12 @@ dev = [
 [project.scripts]
 steam-pipeline = "src.cli:app"
 
+# Jawna deklaracja pakietu 'src' wyłącza domyślną heurystykę setuptools, która gubi się
+# przy obecności katalogów analitycznych (data, notebooks, reports) w korzeniu repozytorium.
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
