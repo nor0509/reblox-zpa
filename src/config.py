@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     )
 
     min_reviews_threshold: int = Field(
-        default=30,
+        default=100,
         ge=0,
         description="Minimalna łączna liczba recenzji (pozytywne + negatywne) kwalifikująca grę do analizy.",
     )
