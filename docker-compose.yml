@@ -1,0 +1,13 @@
+services:
+  ingestion-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: steam-niche-ingestion
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    # Wznawia kontener automatycznie w razie nieoczekiwanego błędu sieciowego,
+    # zatrzymuje po pełnym wykonaniu zadania i wygenerowaniu plików Parquet (exit code 0).
+    restart: on-failure:5
