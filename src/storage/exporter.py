@@ -23,7 +23,7 @@ class ParquetExporter:
     def _extract_raw_rows(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         """Odczytuje dane z bazy SQLite i przekształca je do płaskich słowników gotowych do zapisania w plikach."""
         games_rows: list[dict[str, Any]] = []
-        tags_rows: list[dict[str, Any]] = []
+        tags_rows: list[dict[str, Any]] = []  # Zachowane historycznie
 
         conn = sqlite3.connect(str(self.sqlite_db_path))
         try:
@@ -99,28 +99,28 @@ class ParquetExporter:
                     }
                 )
 
-                # Tagi zapisujemy osobno, bo każda gra ma ich całą listę.
-                raw_tags = spy_data.get("tags")
-                if isinstance(raw_tags, dict):
-                    for tag_name, vote_count in raw_tags.items():
-                        tags_rows.append(
-                            {
-                                "app_id": int(app_id),
-                                "tag_name": str(tag_name),
-                                "votes": int(vote_count),
-                            }
-                        )
+                # ZAKOMENTOWANO: Tagi ze SteamSpy nie są dostępne w masowym zapytaniu request=all
+                # raw_tags = spy_data.get("tags")
+                # if isinstance(raw_tags, dict):
+                #     for tag_name, vote_count in raw_tags.items():
+                #         tags_rows.append(
+                #             {
+                #                 "app_id": int(app_id),
+                #                 "tag_name": str(tag_name),
+                #                 "votes": int(vote_count),
+                #             }
+                #         )
         finally:
             conn.close()
 
         return games_rows, tags_rows
 
     def export_to_parquet(self) -> dict[str, int]:
-        """Zapisuje przygotowane dane do plików games.parquet oraz tags.parquet."""
+        """Zapisuje przygotowane dane do pliku games.parquet (tabela tags wyłączona)."""
         games_rows, tags_rows = self._extract_raw_rows()
 
         games_parquet_path = self.processed_dir / "games.parquet"
-        tags_parquet_path = self.processed_dir / "tags.parquet"
+        # tags_parquet_path = self.processed_dir / "tags.parquet"
 
         # Używamy DuckDB w pamięci RAM, żeby szybko przekonwertować dane na skompresowany format Parquet.
         duck_conn = duckdb.connect(":memory:")
@@ -157,15 +157,17 @@ class ParquetExporter:
                 );
                 """
             )
-            duck_conn.execute(
-                """
-                CREATE TABLE tags (
-                    app_id INTEGER,
-                    tag_name VARCHAR,
-                    votes INTEGER
-                );
-                """
-            )
+
+            # ZAKOMENTOWANO: Tabela tags w DuckDB
+            # duck_conn.execute(
+            #     """
+            #     CREATE TABLE tags (
+            #         app_id INTEGER,
+            #         tag_name VARCHAR,
+            #         votes INTEGER
+            #     );
+            #     """
+            # )
 
             if games_rows:
                 duck_conn.executemany(
@@ -177,25 +179,27 @@ class ParquetExporter:
                     [list(row.values()) for row in games_rows],
                 )
 
-            if tags_rows:
-                duck_conn.executemany(
-                    "INSERT INTO tags VALUES (?, ?, ?);",
-                    [list(row.values()) for row in tags_rows],
-                )
+            # ZAKOMENTOWANO: Wstawianie do tabeli tags
+            # if tags_rows:
+            #     duck_conn.executemany(
+            #         "INSERT INTO tags VALUES (?, ?, ?);",
+            #         [list(row.values()) for row in tags_rows],
+            #     )
 
             duck_conn.execute(
                 f"COPY games TO '{games_parquet_path.as_posix()}' (FORMAT PARQUET, COMPRESSION ZSTD);"
             )
-            duck_conn.execute(
-                f"COPY tags TO '{tags_parquet_path.as_posix()}' (FORMAT PARQUET, COMPRESSION ZSTD);"
-            )
+
+            # ZAKOMENTOWANO: Eksport pliku tags.parquet
+            # duck_conn.execute(
+            #     f"COPY tags TO '{tags_parquet_path.as_posix()}' (FORMAT PARQUET, COMPRESSION ZSTD);"
+            # )
         finally:
             duck_conn.close()
 
         stats = {"games": len(games_rows), "tags": len(tags_rows)}
         logger.info(
-            "Eksport do Parquet zakończony: zapisano %d gier i %d tagów.",
+            "Eksport do Parquet zakończony: zapisano %d gier (tags wyłączone).",
             stats["games"],
-            stats["tags"],
         )
         return stats
