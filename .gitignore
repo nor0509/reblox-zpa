@@ -150,7 +150,6 @@ data/raw/*
 *.sqlite3-journal
 *.duckdb
 *.duckdb.wal
-*.parquet
 
 # Systemowe (macOS itp.)
 .DS_Store
