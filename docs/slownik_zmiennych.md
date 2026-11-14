@@ -133,7 +133,11 @@ Niniejszy dokument określa specyfikację techniczną zmiennych w architekturze 
 * **Dlaczego się stosuje:** Tradycyjny wskaźnik procentowy (`positive_ratio`) jest podatny na błąd małej próby (np. gra z dwiema recenzjami i jedną pozytywną ma wynik 100%, co statystycznie jest niemiarodajne). Wzór Wilsona uwzględnia wielkość próby, zaniżając wynik dla małej liczby recenzji na rzecz statystycznej pewności.
 * **Gdzie:** Stosowany w systemach rankingowych (m.in. SteamDB, Reddit) do porządkowania obiektów o skrajnie różnej liczbie oddanych głosów.
 
+_How Not To Sort By Average Rating – Evan Miller https://www.evanmiller.org/how-not-to-sort-by-average-rating.html_
+
 ### [2] Metoda Boxleitera (`estimated_revenue_usd`)
 * **Czym to jest:** Empiryczna metoda szacowania przychodów finansowych gier na platformie Steam, opracowana przez analityka industry-gamedev Chrisa Boxleitera.
 * **Dlaczego się stosuje:** Platforma Steam nie publikuje jawnych danych o sprzedaży ani przychodach. Metoda ta opiera się na stałym współczynniku konwersji (zakładającym średnio 1 zakup na każde 30 recenzji użytkowników), cenie początkowej oraz korekcie uwzględniającej prowizję platformy i podatki.
 * **Gdzie:** Stosowana w inżynierii danych i analizie rynkowej w sektorze gier wideo do makroekonomicznych szacunków wielkości rynku i potencjału finansowego nisz.
+
+_Boxleiter Method: Steam Sales Multipliers Explained (2026) https://www.steampageanalyzer.com/blog/boxleiter-method-explained_
