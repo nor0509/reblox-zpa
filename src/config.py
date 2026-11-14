@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     )
     processed_data_dir: Path = Field(
         default=Path("data/processed"),
-        description="Katalog docelowy dla wyczyszczonych plików Parquet i bazy DuckDB (Warstwa Silver).",
+        description="Katalog docelowy dla wyczyszczonego pliku Parquet (Warstwa Silver).",
     )
 
     steamspy_base_url: str = Field(
@@ -29,10 +29,6 @@ class Settings(BaseSettings):
     steam_store_base_url: str = Field(
         default="https://store.steampowered.com/api/appdetails",
         description="Bazowy adres URL dla oficjalnego API sklepu Steam.",
-    )
-    steam_web_api_key: str | None = Field(
-        default=None,
-        description="Klucz API dla Steam Web API (opcjonalny na etapie pobierania katalogu).",
     )
 
     steamspy_rate_limit_seconds: float = Field(
@@ -63,18 +59,7 @@ class Settings(BaseSettings):
     @field_validator("steamspy_rate_limit_seconds")
     @classmethod
     def validate_steamspy_rate_limit(cls, value: float) -> float:
-        """Waliduje limit zapytań dla SteamSpy pod kątem rygorystycznych restrykcji IP.
-
-        Args:
-            value: Czas opóźnienia w sekundach.
-
-        Returns:
-            Zwalidowany czas opóźnienia.
-
-        Raises:
-            ValueError: Gdy wartość jest mniejsza niż 60 sekund (ryzyko natychmiastowego HTTP 429).
-        """
-        # SteamSpy nakłada sztywny cooldown 60s na endpoint request=all.
+        """Waliduje limit zapytań dla SteamSpy pod kątem rygorystycznych restrykcji IP."""
         if value < 60.0:
             raise ValueError(
                 "Limit dla SteamSpy (steamspy_rate_limit_seconds) nie może być mniejszy niż 60.0 sekund."
@@ -84,17 +69,7 @@ class Settings(BaseSettings):
     @field_validator("steam_store_rate_limit_seconds")
     @classmethod
     def validate_steam_store_rate_limit(cls, value: float) -> float:
-        """Waliduje limit zapytań dla Steam Store API (limit: 200 req / 5 min).
-
-        Args:
-            value: Czas opóźnienia w sekundach.
-
-        Returns:
-            Zwalidowany czas opóźnienia.
-
-        Raises:
-            ValueError: Gdy wartość jest mniejsza niż 1.5 sekundy (przekroczenie 200 zapytań w 300 sekund).
-        """
+        """Waliduje limit zapytań dla Steam Store API (limit: 200 req / 5 min)."""
         if value < 1.5:
             raise ValueError(
                 "Limit dla Steam Store (steam_store_rate_limit_seconds) nie może być mniejszy niż 1.5 sekundy."
@@ -108,11 +83,7 @@ class Settings(BaseSettings):
 
 
 def get_settings() -> Settings:
-    """Tworzy i zwraca instancję konfiguracji aplikacji.
-
-    Returns:
-        Zwalidowany obiekt klasy Settings.
-    """
+    """Tworzy i zwraca instancję konfiguracji aplikacji."""
     settings = Settings()
     settings.ensure_directories()
     return settings

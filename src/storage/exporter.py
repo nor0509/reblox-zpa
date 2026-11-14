@@ -12,18 +12,17 @@ logger = logging.getLogger(__name__)
 
 
 class ParquetExporter:
-    """Konwertuje pobrane dane z bazy SQLite do plików w formacie Apache Parquet."""
+    """Konwertuje pobrane dane z bazy SQLite do pliku w formacie Apache Parquet."""
 
     def __init__(self, sqlite_db_path: Path | str, processed_dir: Path | str) -> None:
-        """Inicjalizuje eksporter, ustawiając ścieżkę do bazy SQLite oraz folder docelowy dla plików Parquet."""
+        """Inicjalizuje eksporter, ustawiając ścieżkę do bazy SQLite oraz folder docelowy dla pliku Parquet."""
         self.sqlite_db_path = Path(sqlite_db_path)
         self.processed_dir = Path(processed_dir)
         self.processed_dir.mkdir(parents=True, exist_ok=True)
 
-    def _extract_raw_rows(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-        """Odczytuje dane z bazy SQLite i przekształca je do płaskich słowników gotowych do zapisania w plikach."""
+    def _extract_raw_rows(self) -> list[dict[str, Any]]:
+        """Odczytuje dane z bazy SQLite i przekształca je do płaskich słowników gotowych do zapisania w pliku."""
         games_rows: list[dict[str, Any]] = []
-        tags_rows: list[dict[str, Any]] = []  # Zachowane historycznie
 
         conn = sqlite3.connect(str(self.sqlite_db_path))
         try:
@@ -69,10 +68,6 @@ class ParquetExporter:
                         "negative_reviews": int(spy_data.get("negative", 0) or 0),
                         "total_recommendations": int(recommendations.get("total", 0) or 0),
                         "owners_range": str(spy_data.get("owners", "")),
-                        "average_playtime_forever_min": int(
-                            spy_data.get("average_forever", 0) or 0
-                        ),
-                        "median_playtime_forever_min": int(spy_data.get("median_forever", 0) or 0),
                         "ccu": int(spy_data.get("ccu", 0) or 0),
                         "metacritic_score": (
                             int(metacritic["score"]) if "score" in metacritic else None
@@ -98,29 +93,15 @@ class ParquetExporter:
                         "short_description": steam_data.get("short_description"),
                     }
                 )
-
-                # ZAKOMENTOWANO: Tagi ze SteamSpy nie są dostępne w masowym zapytaniu request=all
-                # raw_tags = spy_data.get("tags")
-                # if isinstance(raw_tags, dict):
-                #     for tag_name, vote_count in raw_tags.items():
-                #         tags_rows.append(
-                #             {
-                #                 "app_id": int(app_id),
-                #                 "tag_name": str(tag_name),
-                #                 "votes": int(vote_count),
-                #             }
-                #         )
         finally:
             conn.close()
 
-        return games_rows, tags_rows
+        return games_rows
 
     def export_to_parquet(self) -> dict[str, int]:
-        """Zapisuje przygotowane dane do pliku games.parquet (tabela tags wyłączona)."""
-        games_rows, tags_rows = self._extract_raw_rows()
-
+        """Zapisuje przygotowane dane do pliku games.parquet."""
+        games_rows = self._extract_raw_rows()
         games_parquet_path = self.processed_dir / "games.parquet"
-        # tags_parquet_path = self.processed_dir / "tags.parquet"
 
         # Używamy DuckDB w pamięci RAM, żeby szybko przekonwertować dane na skompresowany format Parquet.
         duck_conn = duckdb.connect(":memory:")
@@ -141,8 +122,6 @@ class ParquetExporter:
                     negative_reviews INTEGER,
                     total_recommendations INTEGER,
                     owners_range VARCHAR,
-                    average_playtime_forever_min INTEGER,
-                    median_playtime_forever_min INTEGER,
                     ccu INTEGER,
                     metacritic_score INTEGER,
                     required_age INTEGER,
@@ -158,48 +137,25 @@ class ParquetExporter:
                 """
             )
 
-            # ZAKOMENTOWANO: Tabela tags w DuckDB
-            # duck_conn.execute(
-            #     """
-            #     CREATE TABLE tags (
-            #         app_id INTEGER,
-            #         tag_name VARCHAR,
-            #         votes INTEGER
-            #     );
-            #     """
-            # )
-
             if games_rows:
                 duck_conn.executemany(
                     """
                     INSERT INTO games VALUES (
-                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
                     );
                     """,
                     [list(row.values()) for row in games_rows],
                 )
 
-            # ZAKOMENTOWANO: Wstawianie do tabeli tags
-            # if tags_rows:
-            #     duck_conn.executemany(
-            #         "INSERT INTO tags VALUES (?, ?, ?);",
-            #         [list(row.values()) for row in tags_rows],
-            #     )
-
             duck_conn.execute(
                 f"COPY games TO '{games_parquet_path.as_posix()}' (FORMAT PARQUET, COMPRESSION ZSTD);"
             )
-
-            # ZAKOMENTOWANO: Eksport pliku tags.parquet
-            # duck_conn.execute(
-            #     f"COPY tags TO '{tags_parquet_path.as_posix()}' (FORMAT PARQUET, COMPRESSION ZSTD);"
-            # )
         finally:
             duck_conn.close()
 
-        stats = {"games": len(games_rows), "tags": len(tags_rows)}
+        stats = {"games": len(games_rows)}
         logger.info(
-            "Eksport do Parquet zakończony: zapisano %d gier (tags wyłączone).",
+            "Eksport do Parquet zakończony: zapisano %d gier.",
             stats["games"],
         )
         return stats

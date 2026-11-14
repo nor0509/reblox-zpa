@@ -82,7 +82,7 @@ def enrich(
 
 @app.command()
 def export() -> None:
-    """Krok 4: Eksportuje dane z bazy SQLite do gotowych plików Parquet."""
+    """Krok 4: Eksportuje dane z bazy SQLite do gotowego pliku Parquet."""
     settings = get_settings()
     exporter = ParquetExporter(
         sqlite_db_path=settings.sqlite_db_path,
@@ -90,7 +90,7 @@ def export() -> None:
     )
     stats = exporter.export_to_parquet()
     console.print(
-        f"[bold green]Wygenerowano pliki w {settings.processed_data_dir}:[/bold green] "
+        f"[bold green]Wygenerowano plik w {settings.processed_data_dir}:[/bold green] "
         f"games.parquet ({stats['games']} wierszy)"
     )
 
