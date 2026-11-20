@@ -1,5 +1,7 @@
 import logging
 import sys
+from pathlib import Path
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -10,6 +12,7 @@ from src.clients.steamspy_client import SteamSpyClient
 from src.config import get_settings
 from src.services.discovery_service import DiscoveryService
 from src.services.enrichment_service import EnrichmentService
+from src.services.silver_service import SilverTransformService
 from src.storage.exporter import ParquetExporter
 from src.storage.state_manager import StateManager
 
@@ -113,6 +116,35 @@ def status() -> None:
     console.print(table)
 
 
+@app.command()
+def transform(
+    input_file: Annotated[
+        Path | None,
+        typer.Option("--input", "-i", help="Ścieżka do pliku źródłowego games.parquet."),
+    ] = None,
+    output_file: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Ścieżka docelowa dla pliku games_silver.parquet."),
+    ] = None,
+) -> None:
+    """Krok 5: Czyści dane i generuje warstwę Silver (games_silver.parquet)."""
+    settings = get_settings()
+    src_path = input_file or (settings.processed_data_dir / "games.parquet")
+    dst_path = output_file or (settings.processed_data_dir / "games_silver.parquet")
+
+    service = SilverTransformService(input_parquet=src_path, output_parquet=dst_path)
+    try:
+        stats = service.build_silver()
+    except FileNotFoundError as exc:
+        console.print(f"[bold red]Błąd:[/bold red] {exc}")
+        raise typer.Exit(code=1) from exc
+
+    console.print(
+        f"[bold green]Wygenerowano warstwę Silver ({dst_path}):[/bold green] "
+        f"{stats['rows']} wierszy, {stats['columns']} kolumn"
+    )
+
+
 @app.command(name="run-all")
 def run_all(
     max_pages: int = typer.Option(
@@ -122,11 +154,12 @@ def run_all(
         None, "--max-games", "-m", help="Limit gier do przetworzenia w sklepie Steam."
     ),
 ) -> None:
-    """Uruchamia pełny proces po kolei: Pobieranie -> Filtrowanie -> Szczegóły -> Eksport."""
+    """Uruchamia pełny proces po kolei: Pobieranie -> Filtrowanie -> Szczegóły -> Eksport -> Silver."""
     discover(max_pages=max_pages)
     filter_games()
     enrich(batch_size=100, max_games=max_games)
     export()
+    transform()
 
 
 if __name__ == "__main__":
