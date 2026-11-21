@@ -29,7 +29,7 @@ Dane źródłowe pobrane z API SteamSpy oraz Steam Store, zapisane w bazie SQLit
 9. **`positive_reviews` / `negative_reviews`** (`INTEGER`) — liczba recenzji pozytywnych i negatywnych.
 10. **`total_recommendations`** (`INTEGER`) — liczba rekomendacji w sklepie Steam.
 11. **`owners_range`** (`VARCHAR`) — przedział liczby posiadaczy ze SteamSpy (np. `0 .. 20,000`).
-12. **`ccu`** (`INTEGER`) — szczytowa liczba graczy jednocześnie.
+12. **`ccu`** (`INTEGER`) — liczba graczy na moment pobrania danych 
 13. **`metacritic_score`** (`INTEGER`) — ocena krytyków 0–100; obecna w ~17% rekordów, w pozostałych `NULL`.
 14. **`required_age`** (`INTEGER`) — minimalny wiek gracza.
 15. **`windows` / `mac` / `linux`** (`BOOLEAN`) — flagi wspieranych systemów operacyjnych.
